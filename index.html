@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="단어장">
+<meta name="theme-color" content="#f7f6f3">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>프랑스어 단어장</title>
+<style>
+  :root { --bg:#f7f6f3; --card:#fff; --ink:#1f2328; --muted:#6b7280; --line:#e5e7eb; --accent:#1d4ed8;
+          --m:#2563eb; --f:#dc2626; --mf:#7c3aed; --ok:#15803d; --bad:#b91c1c; --warn:#a16207; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body { font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; background: var(--bg); color: var(--ink);
+         padding-top: env(safe-area-inset-top); }
+  button, input, select { font: inherit; color: inherit; }
+  .top { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 10px 14px 8px; border-bottom: 1px solid var(--line);
+         display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .top select { flex: 1; min-width: 0; }
+  select, .in { padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; font-size: 16px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+  .seg button { border: 0; background: none; padding: 8px 11px; font-size: 14px; }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .btn { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 9px 13px; font-size: 15px; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .btn.on { background: #eef2ff; border-color: #c7d2fe; color: var(--accent); }
+  .btn:disabled { opacity: .45; }
+  main { padding: 12px 14px calc(84px + env(safe-area-inset-bottom)); }
+  .muted { color: var(--muted); font-size: 13px; }
+  .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; background: rgba(255,255,255,.96);
+          border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); backdrop-filter: blur(10px); }
+  .tabs button { flex: 1; border: 0; background: none; padding: 9px 0 7px; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .tabs button b { font-size: 22px; font-weight: normal; }
+  .tabs button.on { color: var(--accent); }
+  .fr { font-weight: 650; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; text-decoration-color: transparent; }
+  .g-m { text-decoration-color: var(--m); } .g-f { text-decoration-color: var(--f); } .g-mf { text-decoration-color: var(--mf); }
+  .ipa { font-family: "Charis SIL", "Lucida Grande", serif; color: #374151; }
+  .note { white-space: pre-wrap; font-size: 14px; color: #374151; }
+  .snd { border: 0; background: #eef2ff; color: var(--accent); border-radius: 999px; width: 36px; height: 36px; font-size: 16px; flex: none; }
+  /* list */
+  .row { background: var(--card); border-radius: 12px; padding: 11px 12px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .row-h { display: flex; gap: 10px; align-items: center; }
+  .row-h .w { flex: 1; min-width: 0; }
+  .row .fr { font-size: 19px; }
+  .row .mean { font-size: 14px; color: var(--muted); margin-top: 3px; }
+  .row .more { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; display: none; }
+  .row.open .more { display: block; }
+  .ex { margin-top: 6px; font-size: 15px; } .ex b { color: #111827; } .exko { font-size: 13px; color: var(--muted); }
+  .star { color: #f59e0b; }
+  /* cards */
+  .deck { position: relative; }
+  .card { background: var(--card); border-radius: 18px; box-shadow: 0 4px 18px rgba(0,0,0,.08); min-height: 52vh; padding: 22px 18px;
+          display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; user-select: none;
+          transition: transform .18s ease; touch-action: pan-y; }
+  .card .fr { font-size: 36px; }
+  .card .big { font-size: 28px; font-weight: 700; }
+  .card .hint { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; font-size: 12px; color: #9ca3af; }
+  .card .back { width: 100%; text-align: left; }
+  .card .back .fr { font-size: 28px; }
+  .card .back .mean { font-size: 19px; margin: 8px 0; }
+  .cbar { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+  .cbar .grow { flex: 1; text-align: center; }
+  .opts { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 11px; font-size: 13px; }
+  .chip.on { background: #eef2ff; border-color: #c7d2fe; color: var(--accent); }
+  /* test */
+  .box { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .box h3 { margin: 0 0 8px; font-size: 15px; }
+  .ls { display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid #f1f2f4; font-size: 15px; }
+  .ls:last-child { border-bottom: 0; }
+  .ls input { width: 20px; height: 20px; }
+  .ls span:nth-child(2) { flex: 1; }
+  .tm { font-size: 12px; color: var(--muted); } .tm.full { color: var(--ok); font-weight: 700; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tbar { height: 10px; background: #eef0f3; border-radius: 999px; overflow: hidden; }
+  #tfill { height: 100%; width: 100%; background: #22c55e; }
+  #tfill.warn { background: #f59e0b; } #tfill.over { background: #ef4444; }
+  .tsec { font-size: 13px; color: var(--muted); text-align: right; margin-top: 3px; }
+  .prompt { text-align: center; margin: 20px 0 16px; }
+  .prompt .fr { font-size: 32px; }
+  .prompt .ko { font-size: 26px; font-weight: 700; }
+  #tans { width: 100%; font-size: 20px; padding: 12px; border: 2px solid var(--line); border-radius: 12px; }
+  .acc { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .acc button { border: 1px solid var(--line); background: #fff; border-radius: 8px; min-width: 36px; padding: 6px 0; font-size: 17px; }
+  .v { font-size: 17px; font-weight: 700; } .v.ok { color: var(--ok); } .v.slow { color: var(--warn); } .v.bad { color: var(--bad); }
+  .tcard { background: #fafafa; border-radius: 12px; padding: 12px; margin: 10px 0; }
+  .tcard .fr { font-size: 24px; }
+  .sum b { font-size: 34px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 10px; }
+  #toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: #111827; color: #fff;
+           padding: 9px 14px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+  #toast.show { opacity: .93; }
+</style>
+</head>
+<body>
+<div id="view"></div>
+<nav class="tabs">
+  <button data-tab="vocab"><b>📖</b>단어장</button>
+  <button data-tab="test"><b>📝</b>단어 Test</button>
+  <button data-tab="set"><b>⚙️</b>설정</button>
+</nav>
+<div id="toast"></div>
+<script>
+// ======================================================= state & storage
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const boldify = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+const toast = m => { const t = $("toast"); t.textContent = m; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2200); };
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem("fm-" + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("fm-" + k, JSON.stringify(v)); } catch (e) {} },
+};
+let DATA = { words: [], lesson_order: [], mac_mastery: {}, version: "" };
+let S = Object.assign({ tab: "vocab", lesson: "", view: "list", front: "fr", auto: true, shuffle: false, starOnly: false, idx: 0 }, LS.get("settings", {}));
+const saveS = () => LS.set("settings", S);
+let stars = new Set(LS.get("stars", []));
+const saveStars = () => LS.set("stars", [...stars]);
+let localMastery = LS.get("mastery", {});            // {id: {fr2m: {...}, m2fr: {...}}} from tests on this phone
+let sessions = LS.get("sessions", []);               // test sessions on this phone (synced to GitHub later)
+
+const lessons = () => {
+  const rank = l => { const i = DATA.lesson_order.indexOf(l); return i < 0 ? 1e9 : i; };
+  return [...new Set(DATA.words.map(w => w.lesson).filter(Boolean))].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b, "ko", { numeric: true }));
+};
+const tcfLessons = () => lessons().filter(l => l.startsWith("TCF"));
+const short = l => l.replace(/^TCF A1 · /, "");
+function lessonOptions(sel, withAll) {
+  const ls = lessons(), groups = ["TCF", "교재", "문법", "발음"];
+  const g = l => groups.find(x => l.startsWith(x)) || "기타";
+  return (withAll ? `<option value="">전체 레슨</option>` : "") + [...groups, "기타"].map(G => {
+    const it = ls.filter(l => g(l) === G);
+    return it.length ? `<optgroup label="${G}">${it.map(l => `<option value="${esc(l)}" ${l === sel ? "selected" : ""}>${esc(l.replace(new RegExp("^" + G + "\\s*(A1)?\\s*·?\\s*"), ""))}</option>`).join("")}</optgroup>` : "";
+  }).join("");
+}
+function lessonWords(l) {
+  let ws = DATA.words.filter(w => !l || w.lesson === l);
+  if (l && ws.length && ws.every(w => typeof w.order === "number")) ws = ws.slice().sort((a, b) => a.order - b.order);
+  return ws;
+}
+function mastery(id, dir) {                         // phone result wins over the Mac snapshot when newer
+  const a = (localMastery[id] || {})[dir], b = ((DATA.mac_mastery || {})[id] || {})[dir];
+  if (a && b) return (a.at || "") >= (b.at || "") ? a : b;
+  return a || b || null;
+}
+
+// ======================================================= audio
+let cur = null;
+function playFile(name) {
+  if (!name) return toast("음성 파일이 없어요");
+  if (cur) cur.pause();
+  cur = new Audio("audio/" + name);
+  cur.play().catch(() => toast("재생 실패 — 오프라인이면 설정에서 음성을 미리 받아 두세요"));
+}
+const playWord = w => playFile(w.a);
+const playEx = w => playFile(w.xa);
+
+// ======================================================= tabs
+function setTab(t) {
+  S.tab = t; saveS();
+  document.querySelectorAll("[data-tab]").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+  if (t !== "test" && quiz) stopTimer();
+  render();
+}
+document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+function render() {
+  if (!DATA.words.length) { $("view").innerHTML = `<div class="empty">단어 데이터를 불러오는 중…</div>`; return; }
+  if (S.tab === "vocab") return S.view === "card" ? renderCards() : renderList();
+  if (S.tab === "test") return quiz ? showQ() : renderTestSetup();
+  return renderSettings();
+}
+
+// ======================================================= 단어장: list
+function topBar() {
+  return `<div class="top"><select id="lesson">${lessonOptions(S.lesson, true)}</select>
+    <span class="seg"><button data-view="list" class="${S.view === "list" ? "on" : ""}">📋 목록</button><button data-view="card" class="${S.view === "card" ? "on" : ""}">🃏 카드</button></span></div>`;
+}
+function renderList() {
+  const ws = lessonWords(S.lesson).filter(w => !S.starOnly || stars.has(w.id));
+  $("view").innerHTML = topBar() + `<main>
+    <div class="opts"><button class="chip ${S.starOnly ? "on" : ""}" data-opt="starOnly">★ 표시한 단어만</button><span class="muted" style="align-self:center">${ws.length}개 · 탭하면 자세히</span></div>
+    ${ws.length ? ws.map(w => `<div class="row" data-row="${w.id}">
+      <div class="row-h"><div class="w"><span class="fr g-${esc(w.gender)}">${esc(w.fr)}</span>${stars.has(w.id) ? ` <span class="star">★</span>` : ""}
+        <div class="mean">${esc(w.ko)} · ${esc(w.en)}</div></div>
+        <button class="snd" data-play="${w.id}">🔊</button></div>
+      <div class="more">${w.ipa ? `<div class="ipa">/${esc(w.ipa)}/</div>` : ""}${w.note ? `<div class="note">${esc(w.note)}</div>` : ""}
+        ${w.ex ? `<div class="ex" data-pex="${w.id}">🔊 ${boldify(w.ex)}<div class="exko">${esc(w.ex_ko)}</div></div>` : ""}
+        <div style="margin-top:8px"><button class="chip ${stars.has(w.id) ? "on" : ""}" data-star="${w.id}">${stars.has(w.id) ? "★ 표시 해제" : "☆ 아직 몰라요"}</button></div></div>
+    </div>`).join("") : `<div class="empty">단어가 없어요</div>`}</main>`;
+}
+
+// ======================================================= 단어장: cards (Anki-style)
+let deck = [], flipped = false;
+function buildDeck() {
+  deck = lessonWords(S.lesson).filter(w => !S.starOnly || stars.has(w.id));
+  if (S.shuffle) for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+  if (S.idx >= deck.length) S.idx = 0;
+}
+function renderCards(autoplay) {
+  if (!deck.length || deck._key !== S.lesson + S.starOnly + S.shuffle) { buildDeck(); deck._key = S.lesson + S.starOnly + S.shuffle; }
+  const w = deck[S.idx];
+  const front = !w ? "" : S.front === "fr"
+    ? `<span class="fr g-${esc(w.gender)}">${esc(w.fr)}</span>`
+    : `<div class="big">${esc(w.ko)}</div><div class="muted" style="font-size:16px;margin-top:6px">${esc(w.en)}</div>`;
+  const back = !w ? "" : `<div class="back">
+      <div style="display:flex;align-items:center;gap:10px"><span class="fr g-${esc(w.gender)}" style="flex:1">${esc(w.fr)}</span><button class="snd" data-play="${w.id}">🔊</button></div>
+      ${w.ipa ? `<div class="ipa">/${esc(w.ipa)}/</div>` : ""}
+      <div class="mean">${esc(w.ko)} <span class="muted" style="font-size:15px">· ${esc(w.en)}</span></div>
+      ${w.note ? `<div class="note">${esc(w.note)}</div>` : ""}
+      ${w.ex ? `<div class="ex" data-pex="${w.id}">🔊 ${boldify(w.ex)}<div class="exko">${esc(w.ex_ko)}</div></div>` : ""}</div>`;
+  $("view").innerHTML = topBar() + `<main>
+    <div class="opts">
+      <span class="seg"><button data-front="fr" class="${S.front === "fr" ? "on" : ""}">앞면: 프랑스어</button><button data-front="mean" class="${S.front === "mean" ? "on" : ""}">앞면: 뜻</button></span>
+      <button class="chip ${S.shuffle ? "on" : ""}" data-opt="shuffle">🔀 섞기</button>
+      <button class="chip ${S.starOnly ? "on" : ""}" data-opt="starOnly">★만</button>
+      <button class="chip ${S.auto ? "on" : ""}" data-opt="auto">🔊 자동</button>
+    </div>
+    ${w ? `<div class="deck"><div class="card" id="card">${flipped ? back : front}<div class="hint">${flipped ? "" : "탭해서 뒤집기 · 좌우로 밀어서 넘기기"}</div></div></div>
+    <div class="cbar"><button class="btn" data-go="-1">◀</button>
+      <div class="grow"><button class="chip ${stars.has(w.id) ? "on" : ""}" data-star="${w.id}">${stars.has(w.id) ? "★ 몰라요" : "☆ 몰라요"}</button>
+        <div class="muted">${S.idx + 1} / ${deck.length}</div></div>
+      <button class="btn" data-go="1">▶</button></div>`
+    : `<div class="empty">${S.starOnly ? "★ 표시한 단어가 없어요" : "단어가 없어요"}</div>`}</main>`;
+  if (w && autoplay && S.auto && (S.front === "fr" || flipped)) playWord(w);
+  bindSwipe();
+}
+function go(d) { if (!deck.length) return; S.idx = (S.idx + d + deck.length) % deck.length; flipped = false; saveS(); renderCards(true); }
+function bindSwipe() {
+  const c = $("card"); if (!c) return;
+  let x0 = null, y0 = null, moved = false;
+  c.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; moved = false; }, { passive: true });
+  c.addEventListener("touchmove", e => { if (x0 == null) return; const dx = e.touches[0].clientX - x0; if (Math.abs(dx) > 10) { moved = true; c.style.transform = `translateX(${dx}px) rotate(${dx / 40}deg)`; } }, { passive: true });
+  c.addEventListener("touchend", e => {
+    const dx = (e.changedTouches[0].clientX - x0), dy = (e.changedTouches[0].clientY - y0); x0 = null;
+    c.style.transform = "";
+    if (moved && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy)) go(dx < 0 ? 1 : -1);
+    else if (!moved && !e.target.closest("button,[data-pex]")) flip();
+  });
+  c.addEventListener("click", e => { if (!("ontouchstart" in window) && !e.target.closest("button,[data-pex]")) flip(); });
+}
+function flip() { flipped = !flipped; renderCards(false); const w = deck[S.idx]; if (flipped && S.auto && S.front !== "fr" && w) playWord(w); }
+
+// ======================================================= 단어 Test (same rules as the Mac app)
+let T = Object.assign({ dir: "fr2m", lessons: [], filter: "all", limit: "20", sec: 15 }, LS.get("test", {}));
+const saveT = () => LS.set("test", T);
+let quiz = null, tTimer = null;
+const DIRNAME = { fr2m: "프랑스어 → 뜻", m2fr: "뜻 → 프랑스어" };
+const ACCENTS = ["é", "è", "ê", "à", "â", "ç", "î", "ô", "ù", "û", "ë", "ï", "œ"];
+const isMastered = (w, dir) => !!(mastery(w.id, dir || T.dir) || {}).mastered;
+function pool() {
+  let l = DATA.words.filter(w => T.lessons.includes(w.lesson));
+  if (T.filter === "not") l = l.filter(w => !isMastered(w));
+  if (T.filter === "wrong") l = l.filter(w => { const m = mastery(w.id, T.dir); return m && !m.mastered; });
+  if (T.filter === "new") l = l.filter(w => !mastery(w.id, T.dir));
+  if (T.filter === "star") l = l.filter(w => stars.has(w.id));
+  return l;
+}
+function renderTestSetup() {
+  const ls = tcfLessons();
+  T.lessons = T.lessons.filter(l => ls.includes(l));
+  const p = pool(), n = T.limit === "all" ? p.length : Math.min(p.length, +T.limit);
+  $("view").innerHTML = `<main>
+    <div class="box"><h3>방향</h3>
+      <div class="grid2"><button class="btn ${T.dir === "fr2m" ? "on" : ""}" data-tdir="fr2m">🇫🇷 → 뜻</button><button class="btn ${T.dir === "m2fr" ? "on" : ""}" data-tdir="m2fr">뜻 → 🇫🇷 철자</button></div>
+      <h3 style="margin-top:12px">문제</h3>
+      <select id="tfilter" style="width:100%;margin-bottom:8px">
+        ${[["all", "선택한 단어 전부"], ["not", "아직 못 외운 단어만"], ["wrong", "지난번 틀리거나 느렸던 단어만"], ["new", "한 번도 안 본 단어만"], ["star", "★ 표시한 단어만"]].map(([v, t]) => `<option value="${v}" ${T.filter === v ? "selected" : ""}>${t}</option>`).join("")}
+      </select>
+      <div class="grid2"><select id="tlimit">${["10", "20", "30", "50", "all"].map(x => `<option value="${x}" ${T.limit === x ? "selected" : ""}>${x === "all" ? "전부" : x + "문제"}</option>`).join("")}</select>
+        <select id="tsec">${[10, 15, 20, 30].map(x => `<option value="${x}" ${T.sec === x ? "selected" : ""}>제한 ${x}초</option>`).join("")}</select></div>
+      <button class="btn primary" id="tstart" style="width:100%;margin-top:12px" ${n ? "" : "disabled"}>▶ 시작 (${n}문제)</button>
+    </div>
+    <div class="box"><h3>레슨 고르기 <span class="muted">(${DIRNAME[T.dir]} 완벽 / 전체)</span></h3>
+      <label class="ls"><input type="checkbox" id="tallcb" ${ls.every(l => T.lessons.includes(l)) ? "checked" : ""}><span><b>TCF 전체</b></span></label>
+      ${ls.map(l => { const ws = DATA.words.filter(w => w.lesson === l), a = ws.filter(w => isMastered(w)).length;
+        return `<label class="ls"><input type="checkbox" data-tl="${esc(l)}" ${T.lessons.includes(l) ? "checked" : ""}><span>${esc(short(l))}</span><span class="tm ${a === ws.length ? "full" : ""}">${a}/${ws.length}</span></label>`; }).join("")}
+    </div>
+    ${testHistory()}</main>`;
+}
+function testHistory() {
+  const ss = sessions.slice().reverse().slice(0, 15);
+  if (!ss.length) return "";
+  return `<div class="box"><h3>이 폰에서 본 테스트</h3><table><tr><th>날짜</th><th>방향</th><th>완벽</th><th>평균</th></tr>
+    ${ss.map(s => `<tr><td>${esc(s.date.slice(5))} ${esc(s.time)}</td><td>${s.dir === "fr2m" ? "→뜻" : "→철자"}</td><td><b>${s.perfect}/${s.total}</b></td><td>${s.avg_sec}s</td></tr>`).join("")}</table></div>`;
+}
+// --- answer checking (identical to the Mac app)
+const nfc = s => String(s || "").normalize("NFC");
+const deacc = s => nfc(s).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/œ/g, "oe").replace(/æ/g, "ae");
+function normFr(s) {
+  return nfc(s).toLowerCase().replace(/[’‘`´]/g, "'").replace(/[«»"“”]/g, "")
+    .replace(/\s*([,;:/])\s*/g, " ").replace(/[.!?…]+/g, " ").replace(/\s*'\s*/g, "'").replace(/\s+/g, " ").trim();
+}
+const ARTS = /^(le|la|les|un|une|des|l')\s*/;
+function checkFr(ans, w) {
+  const a = normFr(ans), target = normFr(w.fr), bag = s => s.split(" ").sort().join(" ");
+  if (!a) return { ok: false, kind: "empty" };
+  if (a === target || (w.fr.includes("/") && bag(a) === bag(target))) return { ok: true };
+  if (deacc(a) === deacc(target) || (w.fr.includes("/") && bag(deacc(a)) === bag(deacc(target)))) return { ok: false, kind: "accent", msg: "악상(é, è, ç …)이 틀렸어요" };
+  if (ARTS.test(target) && a === target.replace(ARTS, "")) return { ok: false, kind: "article", msg: "관사(le/la/l'…)까지 써야 해요" };
+  if (ARTS.test(target) && ARTS.test(a) && a.replace(ARTS, "") === target.replace(ARTS, "")) return { ok: false, kind: "article", msg: "관사가 틀렸어요 — 성별 확인" };
+  return { ok: false, kind: "wrong" };
+}
+function lev(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+const normEn = s => String(s || "").toLowerCase().replace(/[’‘]/g, "'")
+  .replace(/n't\b/g, " not").replace(/'m\b/g, " am").replace(/'re\b/g, " are").replace(/'s\b/g, " is")
+  .replace(/'ll\b/g, " will").replace(/'ve\b/g, " have").replace(/'d\b/g, " would")
+  .replace(/[.!?'"]/g, "").replace(/^(to|a|an|the)\s+/, "").replace(/\s+/g, " ").trim();
+function meaningCands(w) {
+  const out = [], sentence = /[.!?…]$/.test(String(w.fr || "").trim());
+  const add = (s, lang) => {
+    const base = String(s || "");
+    const pieces = base.split(sentence ? /[;/]| or |또는/ : /[,;/·]| or |또는/);
+    const paren = [...base.matchAll(/\(([^)]*)\)/g)].map(m => m[1]);
+    [...pieces, ...paren, base.replace(/\([^)]*\)/g, "")].forEach(p => {
+      let x = p.replace(/\([^)]*\)/g, "").trim();
+      x = lang === "en" ? normEn(x) : x.replace(/[\s.!?~'"…]/g, "");
+      if (x && !out.some(o => o.x === x && o.lang === lang)) out.push({ x, lang });
+    });
+  };
+  add(w.en, "en"); add(w.ko, "ko");
+  return out;
+}
+const normKo = s => String(s || "").replace(/\([^)]*\)/g, "").replace(/[\s.,!?~'"…·]/g, "")
+  .replace(/^(응|네|예|아|어|음)(?=.)/, "").replace(/^(난|나는|저는|전|내가|제가)(?=.)/, "")
+  .replace(/(정말|진짜|매우|너무|엄청)/g, "아주").replace(/(당신|넌|너)/g, "너").replace(/요/g, "");
+const bigrams = s => { const a = []; for (let i = 0; i < s.length - 1; i++) a.push(s.slice(i, i + 2)); return a; };
+function dice(a, b) {
+  const A = bigrams(a), B = bigrams(b); if (!A.length || !B.length) return 0;
+  const pool = [...B]; let hit = 0;
+  for (const x of A) { const k = pool.indexOf(x); if (k >= 0) { hit++; pool.splice(k, 1); } }
+  return 2 * hit / (A.length + B.length);
+}
+function checkMeaning(ans, w) {
+  const raw = String(ans || "").trim();
+  if (!raw) return { ok: false, kind: "empty" };
+  const en = normEn(raw), ko = raw.replace(/[\s.!?~'"…]/g, "");
+  for (const c of meaningCands(w)) {
+    if (c.lang === "en") {
+      if (en === c.x || (c.x.length >= 5 && lev(en, c.x) <= 1)) return { ok: true };
+      if (c.x.split(" ").length >= 3 && dice(en.replace(/ /g, ""), c.x.replace(/ /g, "")) >= 0.75) return { ok: true };
+    } else {
+      if (ko === c.x) return { ok: true };
+      const a = normKo(raw), b = normKo(c.x);
+      if (a && (a === b || (b.length >= 3 && a.length >= 2 && dice(a, b) >= 0.7))) return { ok: true };
+      if (ko.length >= 2 && (c.x.includes(ko) && ko.length >= c.x.length * 0.5 || ko.includes(c.x) && c.x.length >= 2)) return { ok: true };
+    }
+  }
+  return { ok: false, kind: "wrong" };
+}
+// --- quiz flow
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function startQuiz(list) {
+  if (!list) { const p = shuffle(pool().slice()); list = T.limit === "all" ? p : p.slice(0, +T.limit); }
+  if (!list.length) return toast("문제로 낼 단어가 없어요");
+  quiz = { dir: T.dir, sec: T.sec, items: list.map(w => ({ w })), i: 0, started: new Date(), lessons: [...T.lessons] };
+  showQ(true);
+}
+function stopTimer() { if (tTimer) cancelAnimationFrame(tTimer); tTimer = null; }
+function showQ(fresh) {
+  stopTimer();
+  const it = quiz.items[quiz.i], w = it.w, fr2m = quiz.dir === "fr2m";
+  $("view").innerHTML = `<main>
+    <div class="box">
+      <div style="display:flex;align-items:center;margin-bottom:8px"><span class="muted" style="flex:1">${quiz.i + 1} / ${quiz.items.length} · ${DIRNAME[quiz.dir]}</span>
+        <button class="btn" id="tquit" style="padding:5px 10px;font-size:13px">그만하기</button></div>
+      <div class="tbar"><div id="tfill"></div></div><div class="tsec" id="tsecs"></div>
+      <div class="prompt">${fr2m ? `<span class="fr g-${esc(w.gender)}">${esc(w.fr)}</span> <button class="snd" data-tplay="1">🔊</button>`
+        : `<div class="ko">${esc(w.ko)}</div><div class="muted" style="font-size:15px">${esc(w.en)}</div>`}</div>
+      <input id="tans" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"
+        placeholder="${fr2m ? "영어 또는 한국어 뜻" : "프랑스어 (명사는 관사까지)"}" value="${it.done ? esc(it.ans) : ""}" ${it.done ? "disabled" : ""}>
+      ${fr2m ? "" : `<div class="acc">${ACCENTS.map(a => `<button data-acc="${a}">${a}</button>`).join("")}</div>`}
+      ${it.done ? "" : `<div class="grid2" style="margin-top:10px"><button class="btn primary" id="tsubmit">확인</button><button class="btn" id="tdunno">모르겠음</button></div>`}
+      <div id="tres"></div>
+    </div></main>`;
+  if (it.done) return showResult();
+  if (fresh || it.t0 == null) it.t0 = performance.now();
+  const tick = () => {
+    const f = $("tfill"), s = $("tsecs"); if (!f || it.done) return;
+    const left = quiz.sec - (performance.now() - it.t0) / 1000;
+    f.style.width = Math.max(0, 100 * left / quiz.sec) + "%";
+    f.className = left <= 0 ? "over" : left < 5 ? "warn" : "";
+    s.textContent = left > 0 ? left.toFixed(1) + "초" : "시간 초과 — '완벽'은 아니에요";
+    tTimer = requestAnimationFrame(tick);
+  };
+  tTimer = requestAnimationFrame(tick);
+  if (fr2m && fresh) playWord(w);
+  setTimeout(() => $("tans") && $("tans").focus(), 50);
+}
+function grade(dunno) {
+  const it = quiz.items[quiz.i]; if (it.done) return;
+  const w = it.w, ans = dunno ? "" : $("tans").value;
+  it.sec = Math.round((performance.now() - it.t0) / 100) / 10; it.ans = ans;
+  const r = quiz.dir === "fr2m" ? checkMeaning(ans, w) : checkFr(ans, w);
+  Object.assign(it, { ok: r.ok, kind: r.kind, msg: r.msg || "", mastered: r.ok && it.sec <= quiz.sec, done: true });
+  stopTimer();
+  showQ(false);
+  if (quiz.dir === "m2fr" || !it.ok) playWord(w);
+}
+function verdict(it) {
+  if (it.mastered) return `<span class="v ok">✅ 완벽 · ${it.sec}초</span>`;
+  if (it.ok) return `<span class="v slow">🟡 정답 · ${it.sec}초 (${quiz.sec}초 초과)</span>`;
+  if (it.kind === "empty") return `<span class="v bad">❌ 모름</span>`;
+  return `<span class="v bad">❌ 틀림${it.msg ? " — " + esc(it.msg) : ""}</span>`;
+}
+function showResult() {
+  const it = quiz.items[quiz.i], w = it.w;
+  $("tres").innerHTML = `<div style="margin-top:12px">${verdict(it)}
+    <div class="tcard"><div style="display:flex;align-items:center;gap:8px"><span class="fr g-${esc(w.gender)}" style="flex:1">${esc(w.fr)}</span><button class="snd" data-tplay="1">🔊</button></div>
+      ${w.ipa ? `<div class="ipa">/${esc(w.ipa)}/</div>` : ""}<div style="margin-top:4px">${esc(w.ko)} · <span class="muted">${esc(w.en)}</span></div>
+      ${w.note ? `<div class="note" style="margin-top:4px">${esc(w.note)}</div>` : ""}</div>
+    ${!it.ok && it.kind !== "empty" ? `<button class="btn" id="toverride" style="width:100%;margin-bottom:8px">내 답도 맞음 (정답 인정)</button>` : ""}
+    <button class="btn primary" id="tnext" style="width:100%">${quiz.i + 1 < quiz.items.length ? "다음" : "결과 보기"}</button></div>`;
+}
+function nextQ() { if (quiz.i + 1 < quiz.items.length) { quiz.i++; showQ(true); } else finishQuiz(); }
+let retry = [];
+function finishQuiz() {
+  stopTimer();
+  const its = quiz.items.filter(x => x.done);
+  if (!its.length) { quiz = null; return renderTestSetup(); }
+  const perfect = its.filter(x => x.mastered).length, slow = its.filter(x => x.ok && !x.mastered).length, wrong = its.length - perfect - slow;
+  const okS = its.filter(x => x.ok).map(x => x.sec), avg = okS.length ? Math.round(10 * okS.reduce((a, b) => a + b, 0) / okS.length) / 10 : 0;
+  const d = quiz.started, pad = n => String(n).padStart(2, "0");
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const sess = { id: "ip-" + Date.now().toString(36), device: "iphone", date, time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+    dir: quiz.dir, sec_limit: quiz.sec, lessons: quiz.lessons, total: its.length, perfect, slow, wrong, avg_sec: avg,
+    results: its.map(x => ({ id: x.w.id, dir: quiz.dir, ok: x.ok, sec: x.sec, mastered: x.mastered, ans: x.ans })) };
+  sessions.push(sess); LS.set("sessions", sessions.slice(-300));
+  for (const r of sess.results) {
+    const m = ((localMastery[r.id] = localMastery[r.id] || {})[r.dir] = (localMastery[r.id] || {})[r.dir] || { n: 0, ok_n: 0, streak: 0 });
+    m.n++; m.ok_n += r.ok ? 1 : 0; m.streak = r.mastered ? m.streak + 1 : 0;
+    Object.assign(m, { last_ok: r.ok, last_sec: r.sec, mastered: r.mastered, at: date + " " + sess.time });
+  }
+  LS.set("mastery", localMastery);
+  const miss = its.filter(x => !x.mastered); retry = miss.map(x => x.w);
+  const done = quiz; quiz = null;
+  $("view").innerHTML = `<main><div class="box">
+    <div class="sum"><b>${perfect}</b> / ${its.length} 완벽 (${Math.round(100 * perfect / its.length)}%)</div>
+    <div class="muted">🟡 느림 ${slow} · ❌ 틀림 ${wrong} · 정답 평균 ${avg}초 · ${DIRNAME[done.dir]}</div>
+    ${miss.length ? `<table style="margin-top:10px"><tr><th>단어</th><th>내 답</th></tr>${miss.map(x => `<tr><td><span class="fr g-${esc(x.w.gender)}">${esc(x.w.fr)}</span><div class="muted">${esc(x.w.ko)}</div></td><td>${esc(x.ans || "—")}<div class="muted">${x.ok ? "🟡 " + x.sec + "초" : x.kind === "empty" ? "모름" : "❌"}</div></td></tr>`).join("")}</table>`
+      : `<div class="empty">전부 ${done.sec}초 안에 맞혔어요 🎉</div>`}
+    <div class="grid2" style="margin-top:12px">${miss.length ? `<button class="btn primary" id="tretry">못 외운 ${miss.length}개 다시</button>` : ""}<button class="btn" id="tsetup">새 테스트</button></div>
+  </div></main>`;
+  syncPush(true);
+}
+
+// ======================================================= 설정 (data update, offline audio, GitHub sync)
+let G = Object.assign({ owner: "", repo: "", token: "", last: "" }, LS.get("github", {}));
+function renderSettings() {
+  const audio = [...new Set(DATA.words.flatMap(w => [w.a, w.xa]).filter(Boolean))];
+  $("view").innerHTML = `<main>
+    <div class="box"><h3>데이터</h3>
+      <div class="muted">단어 ${DATA.words.length}개 · 버전 ${esc(DATA.version)}</div>
+      <button class="btn" id="reload" style="width:100%;margin-top:8px">🔄 새 단어 확인</button></div>
+    <div class="box"><h3>오프라인 음성</h3>
+      <div class="muted">음성 ${audio.length}개 (약 ${Math.round(audio.length * 13 / 1024)}MB). 한 번 받아 두면 인터넷 없이도 발음이 나와요.</div>
+      <button class="btn" id="dlaudio" style="width:100%;margin-top:8px">⬇️ 음성 전부 받기</button><div class="muted" id="dlmsg"></div></div>
+    <div class="box"><h3>맥과 테스트 기록 공유 (GitHub)</h3>
+      <div class="muted">이 폰의 테스트 기록을 GitHub에 올리면 맥 단어장 기록과 합쳐져요. 토큰은 이 폰에만 저장돼요.</div>
+      <input class="in" id="gowner" placeholder="GitHub 아이디" value="${esc(G.owner)}" style="width:100%;margin-top:8px" autocapitalize="off">
+      <input class="in" id="grepo" placeholder="저장소 이름" value="${esc(G.repo)}" style="width:100%;margin-top:6px" autocapitalize="off">
+      <input class="in" id="gtoken" placeholder="토큰 (github_pat_…)" value="${G.token ? "••••••••" : ""}" style="width:100%;margin-top:6px" autocapitalize="off" type="password">
+      <button class="btn" id="gsave" style="width:100%;margin-top:8px">저장하고 지금 올리기</button>
+      <div class="muted" style="margin-top:6px">${G.last ? "마지막 업로드: " + esc(G.last) : "아직 올린 적 없음"} · 이 폰 기록 ${sessions.length}회</div></div>
+  </main>`;
+}
+async function downloadAudio() {
+  const files = [...new Set(DATA.words.flatMap(w => [w.a, w.xa]).filter(Boolean))];
+  const c = await caches.open("audio-v1"); let done = 0, fail = 0;
+  for (let i = 0; i < files.length; i += 8) {
+    await Promise.all(files.slice(i, i + 8).map(async f => {
+      const url = new URL("audio/" + f, location.href).href;
+      if (await c.match(url)) { done++; return; }
+      try { const r = await fetch(url); if (r.ok) { await c.put(url, r); done++; } else fail++; } catch (e) { fail++; }
+    }));
+    const m = $("dlmsg"); if (m) m.textContent = `${done + fail} / ${files.length}${fail ? ` (실패 ${fail})` : ""}`;
+  }
+  toast(fail ? `완료 (실패 ${fail}개)` : "음성 전부 저장됨");
+}
+// GitHub contents API: records/iphone.json holds every session from this phone (the Mac merges it)
+async function syncPush(quiet) {
+  if (!G.owner || !G.repo || !G.token || !navigator.onLine) return;
+  const url = `https://api.github.com/repos/${G.owner}/${G.repo}/contents/records/iphone.json`;
+  const H = { Authorization: "Bearer " + G.token, Accept: "application/vnd.github+json" };
+  try {
+    let sha;
+    const g = await fetch(url + "?ref=main", { headers: H });
+    if (g.ok) sha = (await g.json()).sha;
+    const body = { message: "iPhone test records", branch: "main",
+      content: btoa(unescape(encodeURIComponent(JSON.stringify({ sessions }, null, 0)))), ...(sha ? { sha } : {}) };
+    const p = await fetch(url, { method: "PUT", headers: H, body: JSON.stringify(body) });
+    if (!p.ok) throw new Error(p.status);
+    G.last = new Date().toLocaleString("ko-KR"); LS.set("github", G);
+    if (!quiet) toast("기록 업로드 완료");
+  } catch (e) { if (!quiet) toast("업로드 실패: " + e.message); }
+}
+
+// ======================================================= events
+document.addEventListener("click", e => {
+  const t = e.target, q = s => t.closest(s);
+  let el;
+  if ((el = q("[data-view]"))) { S.view = el.dataset.view; S.idx = 0; flipped = false; saveS(); return render(); }
+  if ((el = q("[data-play]"))) { e.stopPropagation(); return playWord(DATA.words.find(w => w.id === el.dataset.play)); }
+  if ((el = q("[data-pex]"))) { e.stopPropagation(); return playEx(DATA.words.find(w => w.id === el.dataset.pex)); }
+  if ((el = q("[data-star]"))) { const id = el.dataset.star; stars.has(id) ? stars.delete(id) : stars.add(id); saveStars(); return render(); }
+  if ((el = q("[data-opt]"))) { const k = el.dataset.opt; S[k] = !S[k]; S.idx = 0; deck = []; saveS(); return render(); }
+  if ((el = q("[data-front]"))) { S.front = el.dataset.front; flipped = false; saveS(); return renderCards(true); }
+  if ((el = q("[data-go]"))) return go(+el.dataset.go);
+  if ((el = q("[data-row]")) && !q("button")) return el.classList.toggle("open");
+  if ((el = q("[data-tdir]"))) { T.dir = el.dataset.tdir; saveT(); return renderTestSetup(); }
+  if (q("[data-tplay]") && quiz) return playWord(quiz.items[quiz.i].w);
+  if ((el = q("[data-acc]"))) {
+    const inp = $("tans"); if (!inp || inp.disabled) return;
+    const s = inp.selectionStart ?? inp.value.length, en = inp.selectionEnd ?? s;
+    inp.value = inp.value.slice(0, s) + el.dataset.acc + inp.value.slice(en); inp.focus(); inp.selectionStart = inp.selectionEnd = s + el.dataset.acc.length; return;
+  }
+  switch (t.id) {
+    case "tstart": return startQuiz();
+    case "tsubmit": return grade(false);
+    case "tdunno": return grade(true);
+    case "tnext": return nextQ();
+    case "tquit": return finishQuiz();
+    case "tretry": return startQuiz(shuffle(retry.slice()));
+    case "tsetup": return renderTestSetup();
+    case "toverride": { const it = quiz.items[quiz.i]; Object.assign(it, { ok: true, kind: "override", msg: "", mastered: it.sec <= quiz.sec }); return showQ(false); }
+    case "reload": return loadData(true);
+    case "dlaudio": return downloadAudio();
+    case "gsave": {
+      G.owner = $("gowner").value.trim(); G.repo = $("grepo").value.trim();
+      const tk = $("gtoken").value.trim(); if (tk && !tk.startsWith("••")) G.token = tk;
+      LS.set("github", G); return syncPush(false).then(renderSettings);
+    }
+  }
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.id === "lesson") { S.lesson = t.value; S.idx = 0; deck = []; flipped = false; saveS(); return render(); }
+  if (t.dataset.tl !== undefined) { const l = t.dataset.tl; T.lessons = t.checked ? [...new Set([...T.lessons, l])] : T.lessons.filter(x => x !== l); }
+  else if (t.id === "tallcb") T.lessons = t.checked ? tcfLessons() : [];
+  else if (t.id === "tfilter") T.filter = t.value;
+  else if (t.id === "tlimit") T.limit = t.value;
+  else if (t.id === "tsec") T.sec = +t.value;
+  else return;
+  saveT(); renderTestSetup();
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter" || !quiz || S.tab !== "test") return;
+  e.preventDefault();
+  const it = quiz.items[quiz.i];
+  if (!it.done) return grade(!$("tans").value.trim());
+  nextQ();
+});
+
+// ======================================================= boot
+async function loadData(manual) {
+  try {
+    const r = await fetch("data/words.json?t=" + Date.now(), { cache: "no-store" });
+    const j = await r.json();
+    const changed = j.version !== DATA.version;
+    DATA = j; LS.set("version", j.version);
+    if (manual) toast(changed ? "새 데이터 반영됨" : "이미 최신이에요");
+  } catch (e) { if (manual) toast("불러오기 실패 (오프라인?)"); }
+  deck = []; render();
+}
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+setTab(S.tab || "vocab");
+loadData(false);
+window.addEventListener("online", () => syncPush(true));
+</script>
+</body>
+</html>
