@@ -457,7 +457,7 @@ function finishQuiz() {
 }
 
 // ======================================================= 설정 (data update, offline audio, GitHub sync)
-let G = Object.assign({ owner: "", repo: "", token: "", last: "" }, LS.get("github", {}));
+let G = Object.assign({ owner: "ys421", repo: "french-vocab-records", token: "", last: "" }, LS.get("github", {}));
 function renderSettings() {
   const audio = [...new Set(DATA.words.flatMap(w => [w.a, w.xa]).filter(Boolean))];
   $("view").innerHTML = `<main>
@@ -468,7 +468,7 @@ function renderSettings() {
       <div class="muted">음성 ${audio.length}개 (약 ${Math.round(audio.length * 13 / 1024)}MB). 한 번 받아 두면 인터넷 없이도 발음이 나와요.</div>
       <button class="btn" id="dlaudio" style="width:100%;margin-top:8px">⬇️ 음성 전부 받기</button><div class="muted" id="dlmsg"></div></div>
     <div class="box"><h3>맥과 테스트 기록 공유 (GitHub)</h3>
-      <div class="muted">이 폰의 테스트 기록을 GitHub에 올리면 맥 단어장 기록과 합쳐져요. 토큰은 이 폰에만 저장돼요.</div>
+      <div class="muted">이 폰의 테스트 기록을 비공개 저장소(french-vocab-records)에 올리면 맥 단어장 기록과 합쳐져요(10분마다). 토큰은 이 폰에만 저장돼요.</div>
       <input class="in" id="gowner" placeholder="GitHub 아이디" value="${esc(G.owner)}" style="width:100%;margin-top:8px" autocapitalize="off">
       <input class="in" id="grepo" placeholder="저장소 이름" value="${esc(G.repo)}" style="width:100%;margin-top:6px" autocapitalize="off">
       <input class="in" id="gtoken" placeholder="토큰 (github_pat_…)" value="${G.token ? "••••••••" : ""}" style="width:100%;margin-top:6px" autocapitalize="off" type="password">
